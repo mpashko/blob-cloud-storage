@@ -18,6 +18,6 @@ If neccessary, it should be created with another file name.
 ```
 GET /api/blobs/<filename>
 ```
-Return the value of the required file. App defined where it is store by itself.
+Return the value of the required file. App define where it is stores by itself.
 
 More specific information, related to class responsibilities mention into docstrings.
