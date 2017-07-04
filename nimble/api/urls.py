@@ -1,8 +1,9 @@
 from django.conf.urls import url
 
-from .views import BlobCreator, BlobContent
+from .views import BlobCreatorView, BlobContentView, FileUploadView
 
 urlpatterns = [
-    url(r'^blobs$', BlobCreator.as_view()),
-    url(r'^blobs/(?P<filename>[\w]+)/$', BlobContent.as_view()),
+    url(r'^blobs$', BlobCreatorView.as_view()),
+    url(r'^blobs/(?P<filename>[\w]+)/$', BlobContentView.as_view()),
+    url(r'^upload$', FileUploadView.as_view())
 ]

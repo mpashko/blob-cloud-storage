@@ -1,6 +1,7 @@
 import os
 
 from rest_framework import status
+from rest_framework.parsers import FileUploadParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from azure.storage.blob import BlockBlobService
@@ -30,7 +31,19 @@ class MongoDBStorage():
     mongo_collection = MongoDBConnection()
 
 
-class BlobCreator(APIView, MongoDBStorage):
+class FileUploadView(APIView):
+    parser_classes = (FileUploadParser,)
+
+    def post(self, request):
+        up_file = request.FILES['file']
+        temp_file = BASE_DIR + '\\temp_storage\\{}'.format(up_file.name)
+        with open(temp_file, 'wb+') as file:
+            data = up_file.read()
+            file.write(data)
+        return Response(status=status.HTTP_201_CREATED)
+
+
+class BlobCreatorView(APIView, MongoDBStorage):
     """
     Responsible for binary files creation
     """
@@ -47,6 +60,9 @@ class BlobCreator(APIView, MongoDBStorage):
                 return Response('File with such name already exists', status=status.HTTP_409_CONFLICT)
 
             if storage.lower() == 'azure':
+                # upload file to the server
+
+                # make as Celery worker
                 _upload_file_to_azure(filename, upload_dir)
             else:
                 return Response('Not allowed storage', status=status.HTTP_400_BAD_REQUEST)
@@ -76,7 +92,7 @@ class BlobCreator(APIView, MongoDBStorage):
         })
 
 
-class BlobContent(APIView, MongoDBStorage):
+class BlobContentView(APIView, MongoDBStorage):
     """
     Return binary file content in response
     """
