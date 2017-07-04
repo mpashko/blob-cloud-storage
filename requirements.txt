@@ -1,4 +1,6 @@
 adal==0.4.5
+amqp==1.4.9
+anyjson==0.3.3
 asn1crypto==0.22.0
 azure==2.0.0
 azure-batch==3.0.0
@@ -38,6 +40,8 @@ azure-servicebus==0.21.1
 azure-servicefabric==5.6.130
 azure-servicemanagement-legacy==0.20.6
 azure-storage==0.34.3
+billiard==3.3.0.23
+celery==3.1.20
 certifi==2017.4.17
 cffi==1.10.0
 chardet==3.0.4
@@ -47,6 +51,7 @@ djangorestframework==3.6.3
 idna==2.5
 isodate==0.5.4
 keyring==10.4.0
+kombu==3.0.37
 msrest==0.4.11
 msrestazure==0.4.11
 oauthlib==2.0.2
@@ -59,4 +64,6 @@ pywin32-ctypes==0.1.2
 requests==2.18.1
 requests-oauthlib==0.8.0
 six==1.10.0
+SQLAlchemy==1.1.11
 urllib3==1.21.1
+vine==1.1.3

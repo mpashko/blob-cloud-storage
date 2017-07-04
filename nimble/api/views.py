@@ -1,14 +1,12 @@
-import os
-
 from rest_framework import status
 from rest_framework.parsers import FileUploadParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from azure.storage.blob import BlockBlobService
 import pymongo
 
 from nimble.settings import BASE_DIR
-from .serializers import UploadBlobSerializer
+from .tasks import upload_file_to_azure
+from .connections import set_azure_connection
 
 
 class MongoDBConnection(object):
@@ -31,45 +29,35 @@ class MongoDBStorage():
     mongo_collection = MongoDBConnection()
 
 
-class FileUploadView(APIView):
-    parser_classes = (FileUploadParser,)
-
-    def post(self, request):
-        up_file = request.FILES['file']
-        temp_file = BASE_DIR + '\\temp_storage\\{}'.format(up_file.name)
-        with open(temp_file, 'wb+') as file:
-            data = up_file.read()
-            file.write(data)
-        return Response(status=status.HTTP_201_CREATED)
-
-
 class BlobCreatorView(APIView, MongoDBStorage):
     """
     Responsible for binary files creation
     """
+    parser_classes = (FileUploadParser,)
+    STORAGE_LIST = ['azure']
+
     def post(self, request):
-        serializer = UploadBlobSerializer(data=request.data)
-        if serializer.is_valid():
-            filename, storage = serializer.data.values()
+        up_file = request.FILES.get('file')
+        if not up_file:
+            return Response('No file to upload', status=status.HTTP_400_BAD_REQUEST)
 
-            upload_dir = BASE_DIR + '\\upload\\{}'.format(filename)
-            if not os.path.exists(upload_dir):
-                return Response('File not found', status=status.HTTP_400_BAD_REQUEST)
+        storage = request.query_params.get('storage')
+        allowed_storage = storage.lower() in self.STORAGE_LIST
+        if not storage or not allowed_storage:
+            return Response('Check "storage" parameter', status=status.HTTP_400_BAD_REQUEST)
 
-            if self._check_file_existance_in_db(filename):
-                return Response('File with such name already exists', status=status.HTTP_409_CONFLICT)
+        filename = up_file.name
+        if self._check_file_existance_in_db(filename):
+            return Response('File with such name already exists', status=status.HTTP_409_CONFLICT)
 
-            if storage.lower() == 'azure':
-                # upload file to the server
+        _save_file_to_temporary_storage(up_file)
 
-                # make as Celery worker
-                _upload_file_to_azure(filename, upload_dir)
-            else:
-                return Response('Not allowed storage', status=status.HTTP_400_BAD_REQUEST)
+        self._add_to_db(filename, storage)
 
-            self._add_to_db(filename, storage)
-            return Response(status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if storage.lower() == 'azure':
+            upload_file_to_azure.delay(filename)
+
+        return Response(status=status.HTTP_201_CREATED)
 
     def _check_file_existance_in_db(self, filename):
         """
@@ -88,41 +76,41 @@ class BlobCreatorView(APIView, MongoDBStorage):
         """
         self.mongo_collection.insert_one({
             "filename": filename,
-            "storage": storage
+            "storage": storage,
+            "open_to_read": False
         })
 
 
 class BlobContentView(APIView, MongoDBStorage):
     """
-    Return binary file content in response
+    Returns a binary file content in response.
+    While file is uploaded to cloud storage,
+    returns data from a temporary storage on the server.
     """
     def get(self, request, filename):
         file = self.mongo_collection.find_one({"filename": filename})
         if not file:
             return Response('File not found', status=status.HTTP_400_BAD_REQUEST)
 
+        if not file['open_to_read']:
+            with open(BASE_DIR + '\\temp_storage\\' + filename) as file:
+                file_data = file.read()
+            return Response(file_data, status=status.HTTP_200_OK)
+
         if file['storage'].lower() == 'azure':
-            azure_connection = _set_azure_connection()
+            azure_connection = set_azure_connection()
             blob = azure_connection.get_blob_to_bytes('container', filename)
             return Response(blob.content, status=status.HTTP_200_OK)
 
 
-def _set_azure_connection():
+def _save_file_to_temporary_storage(file_to_save):
     """
-    Connect to Azure storage
-    :return: BlockBlobService() (connection object)
-    """
-    account_name = os.environ['ACCOUNT_NAME']
-    account_key = os.environ['ACCOUNT_KEY']
-    return BlockBlobService(account_name=account_name, account_key=account_key)
-
-
-def _upload_file_to_azure(filename, upload_dir):
-    """
-    Upload required file to Azure storage
-    :param filename: str
-    :param upload_dir: str (path to file)
+    Save a file to a temporary storage
+    :param file_to_save: str
     :return: nothing
     """
-    azure_connection = _set_azure_connection()
-    azure_connection.create_blob_from_path(container_name='container', blob_name=filename, file_path=upload_dir)
+    filename = file_to_save.name
+    temp_file = BASE_DIR + '\\temp_storage\\{}'.format(filename)
+    with open(temp_file, 'wb+') as file:
+        data = file_to_save.read()
+        file.write(data)
