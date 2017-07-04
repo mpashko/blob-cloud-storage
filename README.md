@@ -5,12 +5,21 @@ All references to uploaded files stores in MongoDB. The app works with MongoDB a
 
 At the moment, there are implemented the following endpoints:
 ```
-POST /api/blobs
-{
-  "filename": name of the file, that should be uploaded,
-  "storage": name of the cloud storage, where the file will be located
-}
+POST /api/blobs?storage=<storage>
+Headers [
+  {"key":"Content-Disposition","value":"form-data; filename='<filename>'"},
+  {"key":"Content-Type","value":"application/octet-stream"}
+]
+
+Body [
+  <binary file>
+]
+
+<storage> -- name of the cloud storage where the file will be located
+<filename> -- name of the file that should be uploaded
+<binary file> -- the file that should be uploaded
 ```
+
 Mentioned endpoint allow to upload needed file to cloud storage ('azure' currently).
 Current service designed as immutable storage. It is mean that uploaded to cloud files cann't be changed and updated.
 If neccessary, it should be created with another file name.
