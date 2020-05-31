@@ -1,4 +1,4 @@
-# REST API for cloud storage
+# Blob Cloud Storage
 
 Current app allow to upload and review binary files from different cloud storages. At the moment, it works only with Microsoft Azure Storage.
 All references to uploaded files stores in MongoDB. The app works with MongoDB all the time in order to receive an information in what cloud storage located the required file.
