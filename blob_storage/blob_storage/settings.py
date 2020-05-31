@@ -81,7 +81,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'blob_storage.wsgi.api'
+WSGI_APPLICATION = 'blob_storage.wsgi.application'
 
 
 # Database
