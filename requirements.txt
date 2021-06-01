@@ -65,5 +65,5 @@ requests==2.18.1
 requests-oauthlib==0.8.0
 six==1.10.0
 SQLAlchemy==1.1.11
-urllib3==1.21.1
+urllib3==1.26.5
 vine==1.1.3
