@@ -42,7 +42,7 @@ azure-servicemanagement-legacy==0.20.6
 azure-storage==0.34.3
 billiard==3.3.0.23
 celery==3.1.20
-certifi==2017.4.17
+certifi==2022.12.7
 cffi==1.10.0
 chardet==3.0.4
 cryptography==1.9
